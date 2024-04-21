@@ -1,0 +1,390 @@
+INCLUDE Irvine32.inc
+INCLUDE macros.inc
+Count =5000
+.data
+
+Slider Byte 16 dup(0)
+String Byte Count dup(0)
+Num_OF_Char DWORD 0      ;Stroe the Assigen Charactors
+Level Dword 5          ;Icrement after Level
+
+NumIN_Row SBYTE ?
+NumIN_Col SBYTE ?
+
+X_axis_Slider SByte ?
+Y_axis_Slider SByte ?
+X_axis_Ball SByte ?
+Y_axis_Ball SByte ?
+
+Acc_X_axis SBYTE -1
+Acc_Y_axis SBYTE 3
+
+.code
+Check_Slider_Is_Here PROC
+movzx eax,X_axis_Ball
+movzx ebx,X_axis_Slider
+cmp eax,ebx
+JNZ Return
+movzx eax,Y_axis_Ball
+movzx ebx,Y_axis_Slider
+cmp eax,ebx
+JL Exitt
+sub eax,ebx
+cmp eax,16
+JGE Exitt
+neg Acc_X_axis
+mov eax,7
+call RandomRange
+movsx ebx,Acc_Y_axis
+cmp ebx,0
+JL First
+mov Acc_Y_axis,al
+ret
+First:
+mov Acc_Y_axis,al
+neg Acc_Y_axis
+Return:
+ret
+Exitt:
+exit
+Check_Slider_Is_Here ENDP
+
+Check_String_Is_Here PROC
+ mov dh,X_axis_Ball
+MOV dl,Y_axis_Ball
+call gotoxy
+mov ebx,Num_OF_Char
+cmp eax,ebx
+JG Return
+mov esi,eax
+mov al,String[eax]
+cmp al,0DBh
+JNZ Return
+mov ecx,10
+L1:
+dec esi
+mov al,String[esi]
+cmp al,0DBh
+JNZ Brick_Torna
+dec dl;
+Loop L1
+Brick_Torna:
+dec dh
+call gotoxy
+inc esi
+mov ecx,10
+L2:
+mwrite" "
+mov String[esi],' '
+inc esi
+mov al,String[esi]
+cmp al,0DBh
+JNZ Bas
+loop L2
+Bas:
+neg Acc_X_axis
+call Check_Ball_Current
+Return:
+ret
+Check_String_Is_Here ENDP
+
+Check_Ball_Current PROC
+call Color
+mov dh,X_axis_Ball
+MOV dl,Y_axis_Ball
+call gotoxy
+add dh,Acc_X_axis
+mov bl,dh
+cmp bl,0
+JNZ  check_Y
+neg Acc_X_axis
+check_Y:                                                              ; x-axis of Ball not equal to zero
+mov X_axis_Ball,bl
+movzx ebx,dl
+movsx eax,Acc_Y_axis
+add ebx,eax
+cmp ebx,0
+JNLE  Aon                                                   ;check Y not greater than colum Number
+mov Y_axis_Ball,0
+neg Acc_Y_axis
+jmp Return
+
+Aon:
+movzx eax,NumIN_Col
+cmp ebx,eax
+JBE Continue                                               ;Continue to move more checking
+neg Acc_Y_axis
+movzx ebx,NumIN_Col
+dec bl
+Continue:
+mov Y_axis_Ball,bl
+Return:
+mwrite" "
+ret
+Check_Ball_Current ENDP
+
+Ball_MOVE  PROC
+
+ call Check_Ball_Current          
+movzx eax,X_axis_Ball
+dec eax
+movzx ebx,NumIN_Col
+mul ebx
+movzx ebx,Y_axis_Ball
+add eax,ebx
+call Check_String_Is_Here
+call Check_Slider_Is_Here
+ mov dh,X_axis_Ball
+MOV dl,Y_axis_Ball
+call gotoxy
+ mov edx,0
+
+mov al,'O'
+call writechar
+
+ret
+
+Ball_MOVE ENDP
+
+
+Slider_Move_Left PROC
+
+cmp Y_axis_Slider,0
+JE Return
+call Color
+movzx eax,Y_axis_Slider
+sub eax,8
+cmp eax,0
+JGE Sub8
+mov Y_axis_Slider,0
+mov dh,X_axis_Slider
+mov dl,Y_axis_Slider
+call gotoxy
+mov al,0DBh
+mov ecx,16
+L1:
+call writechar
+Loop L1
+mov ecx,16
+LL:
+mwrite" "
+loop LL
+ret
+Sub8:
+mov ecx,8
+L2:
+mwrite" "
+Loop L2
+sub Y_axis_Slider,8
+mov dh,X_axis_Slider
+mov dl,Y_axis_Slider
+call Gotoxy
+mov ecx,LENGTHOF Slider
+mov al,0DBh
+L3:
+call writechar
+Loop L3
+mov ecx,8
+space:
+mwrite" "
+loop space
+Return:
+ret
+Slider_Move_Left ENDP
+
+Slider_Move_Right PROC
+movzx eax,NumIN_Col
+sub eax,16
+cmp al,Y_axis_Slider
+JE Return
+call color
+mov dh,X_axis_Slider
+mov dl,Y_axis_Slider
+call Gotoxy
+
+movzx eax,Y_axis_Slider
+movzx ebx,NumIN_Col
+add eax,16
+sub ebx,eax
+
+cmp ebx,8
+
+JGE Add8
+mov ecx,ebx
+L1:
+mwrite" "
+loop L1
+add Y_axis_Slider,bl
+mov ecx,LENGTHOF Slider
+mov al,0DBh
+L4:
+call writechar
+loop L4
+ret
+
+Add8:
+mov ecx,8
+L2:
+mwrite" "
+Loop L2
+mov ecx,LENGTHOF Slider
+mov al,0DBh
+L3:
+call writechar
+Loop L3
+add Y_axis_Slider,8
+Return:
+ret
+Slider_Move_Right ENDP
+
+Draw_Ball Proc
+mov dh,X_axis_Slider
+mov dl,Y_axis_Slider
+add dl,7
+dec dh
+mov X_axis_Ball,dh
+mov Y_axis_Ball,dl
+call Gotoxy
+mov al,'O'
+call writechar
+ret
+Draw_Ball EndP
+
+Draw_Slider PROC
+mov eax,0
+mov edi,OFFSET Slider
+mov al,NumIN_Row
+mov  X_axis_Slider,al
+sub  X_axis_Slider,5
+
+mov al,NumIN_Col
+mov bl,2
+div bl
+sub al,8
+mov Y_axis_Slider,al
+mov dh,X_axis_Slider
+mov dl,al
+call Gotoxy
+mov al,0DBH
+mov ecx,16
+L1:
+mov [edi],al
+inc edi
+call writechar
+loop L1
+ret
+Draw_Slider ENDP
+
+Color Proc
+mov eax,0fh
+call RandomRange
+add eax,1
+call SetTextColor
+ret
+Color ENDP
+
+Bricks_Maker PROC
+Local Ten:DWORD
+Local Col_equal:DWORD
+mov Ten,0
+mov Col_equal,0
+mov eax,0
+mov edx,0
+call GetMaxxy
+mov NumIN_Row,ah
+mov NumIN_Col,dl
+mov eax,edx
+mov ebx,Level
+mul ebx
+mov Num_OF_Char,eax
+mov ecx,Level
+movzx ebx,NumIN_Col
+;inc Level
+;inc Level
+mov esi,0
+L1:
+mov al,0DBh
+         L2:
+         call Color
+         mov al,0DBh
+             mov ecx,10
+             L3:
+             call writechar
+             inc Col_equal
+             mov String[esi],al
+             inc esi
+             cmp ebx,Col_equal             
+             JZ R          ;One Row is complete
+             Loop L3
+             mov ecx,2
+             mov al,32
+             L4:
+              call writechar
+              inc Col_equal
+               mov String[esi],al
+             inc esi
+             cmp ebx,Col_equal             
+             JZ R          ;One Row is complete
+              loop L4
+            mov al,0DBh
+         loop L2
+R:
+mov eax,Level
+inc Ten 
+cmp Ten,eax
+Jz Return
+movzx ecx,NumIN_Col
+mov al,32
+L5:
+mov String[esi],al
+inc esi
+call writechar
+Loop L5
+mov eax,Level
+inc Ten 
+cmp Ten,eax
+Jz Return
+mov Col_equal,0
+loop L1
+Return:
+ret
+Bricks_Maker ENDP
+
+main proc
+
+call waitmsg
+call clrscr
+call Bricks_Maker
+
+;call clrscr
+call Draw_Slider
+call Draw_Ball
+call crlf
+call crlf
+call crlf
+mov ecx,0FFFFFFFFh
+mov eax,20
+L1:
+push ecx
+call Ball_MOVE
+call delay
+call ReadKey
+cmp al,'a'
+Jz Left
+cmp al,'d'
+jz Right
+Run:
+mov eax,20
+pop ecx
+loop L1
+Left:
+call Slider_Move_Left
+jmp Run
+Right:
+call Slider_Move_Right
+jmp Run
+    
+            
+exit
+main endp
+END main
